@@ -18,7 +18,7 @@ def from_pretrained(cls, model_name, kwargs, cache_dir):
 
     if os.path.exists(local_path):
         return cls.from_pretrained(local_path, **kwargs)
-    return cls.from_pretrained(model_name, **kwargs, cache_dir=cache_dir, device_map='auto')
+    return cls.from_pretrained(model_name, **kwargs, cache_dir=cache_dir)
 
 model_fullnames = {  
     'gpt-neo-2.7B': 'EleutherAI/gpt-neo-2.7B',

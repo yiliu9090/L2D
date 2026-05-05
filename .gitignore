@@ -1,5 +1,7 @@
+.env
 .DS_Store
 .Rhistory
+.cache/
 *.pyc
 scripts/AdaDist/ckpt/*
 scoring_model/*

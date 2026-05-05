@@ -19,7 +19,7 @@ def from_pretrained(cls, model_name, kwargs, cache_dir):
 
     if os.path.exists(local_path):
         return cls.from_pretrained(local_path, **kwargs)
-    return cls.from_pretrained(model_name, **kwargs, cache_dir=cache_dir, device_map='auto')
+    return cls.from_pretrained(model_name, **kwargs, cache_dir=cache_dir)
 
 model_fullnames = {  
     'gemma-9b-instruct': 'google/gemma-2-9b-it',
@@ -148,15 +148,22 @@ class AdaDist(nn.Module):
             print(sampled_rewrite_text)
 
         if self.criterion == 'auc':
-            train_original_crit_opt = torch.abs(train_original_crit - train_original_regen_crit).mean()
-            train_sampled_crit_opt = torch.abs(train_sampled_crit - train_sampled_regen_crit).mean()
+            #train_original_crit_opt = torch.abs(train_original_crit - train_original_regen_crit).mean()
+            #train_sampled_crit_opt = torch.abs(train_sampled_crit - train_sampled_regen_crit).mean().
+            train_original_crit_opt = (train_original_crit - train_original_regen_crit).mean()
+            train_sampled_crit_opt = (train_sampled_crit - train_sampled_regen_crit).mean()
         else:
             train_original_crit_opt = train_original_crit.mean()
             train_sampled_crit_opt = train_sampled_crit.mean()
         MMDloss = self.criterion_fn(train_original_crit_opt, train_sampled_crit_opt)
 
-        train_original_crit = torch.abs(train_original_crit - train_original_regen_crit).mean()
-        train_sampled_crit = torch.abs(train_sampled_crit - train_sampled_regen_crit).mean()
+        #train_original_crit = torch.abs(train_original_crit - train_original_regen_crit).mean()
+        #train_sampled_crit = torch.abs(train_sampled_crit - train_sampled_regen_crit).mean()
+        
+        train_original_crit = (train_original_crit - train_original_regen_crit).mean()
+        train_sampled_crit = (train_sampled_crit - train_sampled_regen_crit).mean()
+        
+        
         output = dict(crit=[train_original_crit.detach(), train_original_crit, train_sampled_crit.detach(), train_sampled_crit], loss=MMDloss)
         return output
 

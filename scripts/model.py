@@ -8,7 +8,11 @@ import torch
 import time
 import os
 import huggingface_hub 
-huggingface_hub.login("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")
+
+hf_token = os.getenv("HF_TOKEN")
+if hf_token:
+    # Optional login for gated/private Hugging Face models inside local or container runs.
+    huggingface_hub.login(hf_token, add_to_git_credential=False)
 
 def from_pretrained(cls, model_name, kwargs, cache_dir):
     # use local model if it exists
@@ -18,12 +22,14 @@ def from_pretrained(cls, model_name, kwargs, cache_dir):
     return cls.from_pretrained(model_name, **kwargs, cache_dir=cache_dir)
 
 # predefined models
-model_fullnames = {  
+model_fullnames = {
+    'gemma-1b': 'google/gemma-3-1b-pt',
     'gemma-9b': 'google/gemma-2-9b',
     'gemma-9b-instruct': 'google/gemma-2-9b-it',
     'qwen-4b': "Qwen/Qwen3-4B"
 }
-float16_models = ['gemma-9b', 'gemma-9b-instruct', 'qwen-4b']
+float16_models  = ['gemma-9b', 'gemma-9b-instruct', 'qwen-4b']
+bfloat16_models = ['gemma-1b']
 
 def get_model_fullname(model_name):
     return model_fullnames[model_name] if model_name in model_fullnames else model_name
@@ -34,6 +40,8 @@ def load_model(model_name, device, cache_dir, torch_dtype=None):
     model_kwargs = {}
     if model_name in float16_models:
         model_kwargs.update(dict(torch_dtype=torch.float16))
+    elif model_name in bfloat16_models:
+        model_kwargs.update(dict(torch_dtype=torch.bfloat16))
     if 'gpt-j' in model_name:
         model_kwargs.update(dict(revision='float16'))
     if torch_dtype is not None:

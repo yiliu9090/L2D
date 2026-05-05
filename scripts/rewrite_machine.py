@@ -2,7 +2,7 @@ import os
 os.environ["TORCH_COMPILE_DISABLE"] = "1"
 
 import torch
-torch._dynamo.config.disable = True
+# torch._dynamo.config.disable = True  # Not available in torch 2.10
 from model import load_tokenizer, load_model
 
 PROMPT1 = "You are a rewriting expert and you would rewrite the text without missing the original details. Return ONLY the rewritten version. Do not explain changes, do not give multiple options, and do not add commentary. \n\n Original text: \"{}\" Here is the rewritten version: \n\n"
