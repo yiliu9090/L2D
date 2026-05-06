@@ -119,9 +119,13 @@ for setting in 1 2; do
   if [ "$setting" -eq 1 ]; then
     train_dataset=$data_split_1
     eval_datasets=$data_split_2
+    train_model=$train_model_1
+    eval_models=$eval_models_1
   else
     train_dataset=$data_split_2
     eval_datasets=$data_split_1
+    train_model=$train_model_2
+    eval_models=$eval_models_2
   fi
   my_train_dataset_str=""
   for D1 in $train_dataset; do
@@ -130,6 +134,12 @@ for setting in 1 2; do
       continue
     fi
   
+    # skip datasets whose rewrite file hasn't been generated yet
+    #rewrite_file="${res_path}/${D1}_${train_model}.rewrite_4.json"
+    #if [ ! -f "$rewrite_file" ]; then
+    #  echo "Skipping $D1 (no rewrite file: $rewrite_file)"
+    #  continue
+    #fi
     if [ -z "$my_train_dataset_str" ]; then
       my_train_dataset_str="${data_path}/${D1}_${train_model}"
     else
@@ -151,9 +161,13 @@ for setting in 1 2; do
   if [ "$setting" -eq 1 ]; then
     train_dataset=$data_split_1
     eval_datasets=$data_split_2
+    train_model=$train_model_1
+    eval_models=$eval_models_1
   else
     train_dataset=$data_split_2
     eval_datasets=$data_split_1
+    train_model=$train_model_2
+    eval_models=$eval_models_2
   fi
 
   my_train_dataset_str=""
