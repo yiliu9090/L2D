@@ -71,13 +71,18 @@ def train_dist(model, data, device, ckpt_dir='./ckpt', args=None):
         for batch in tqdm.tqdm(train_loader, desc=f"Fine-tuning: {epoch} epoch"):
             text = batch
             scheduler.step()
-            with autocast():
-                outputs_1 = model(text)
-                epoch_crit_train_original.extend([outputs_1['crit'][1].item()])
-                epoch_crit_train_sampled.extend([outputs_1['crit'][3].item()])
-                loss += (outputs_1['loss'].to(torch.float32)) / accumulation_steps
-            
-            del outputs_1
+            try:
+                with autocast():
+                    outputs_1 = model(text)
+                    epoch_crit_train_original.extend([outputs_1['crit'][1].item()])
+                    epoch_crit_train_sampled.extend([outputs_1['crit'][3].item()])
+                    loss += (outputs_1['loss'].to(torch.float32)) / accumulation_steps
+                del outputs_1
+            except torch.cuda.OutOfMemoryError:
+                print("=================== OOM: skipping batch ===================")
+                torch.cuda.empty_cache()
+                i += 1
+                continue
 
             if ((i + 1) % accumulation_steps) == 0:
                 scaler.scale(loss).backward()

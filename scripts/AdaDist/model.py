@@ -145,7 +145,8 @@ class AdaDist(nn.Module):
             train_sampled_regen_crit = self.get_logp(tokenized, labels, pad_id, training_module=training_module)
         except torch.OutOfMemoryError:
             print("=================== long texts ===================")
-            print(sampled_rewrite_text)
+            torch.cuda.empty_cache()
+            raise
 
         if self.criterion == 'auc':
             #train_original_crit_opt = torch.abs(train_original_crit - train_original_regen_crit).mean()
