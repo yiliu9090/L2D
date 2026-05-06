@@ -31,7 +31,7 @@ TravelTourism ArtCulture Entertainment GovernmentPublic NewsArticle Religious \
 Business Environmental LegalDocument OnlineContent Sports Finance \
 PersonalCommunication TechnicalWriting"
 
-scoring_model="gemma-1b"
+scoring_model="gemma-9b-instruct"
 q_levels="0.05 0.1 0.2 0.3 0.5"
 gpu_device="cuda"
 cache_dir=".cache/huggingface"

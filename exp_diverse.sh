@@ -14,12 +14,12 @@ res_path=$exp_path/results
 mkdir -p $exp_path $data_path $res_path
 source_models="Llama-3-70B GPT-3-Turbo Gemini-1.5-Pro GPT-4o"
 datasets="AcademicResearch EducationMaterial FoodCusine MedicalText ProductReview TravelTourism ArtCulture Entertainment GovernmentPublic NewsArticle Religious Business Environmental LegalDocument OnlineContent Sports Code Finance LiteratureCreativeWriting PersonalCommunication TechnicalWriting"
-#settings='gemma-9b:gemma-9b-instruct'
-#scoring_models="gemma-9b-instruct"
-#rewrite_model="gemma-9b-instruct"
-settings='gemma-1b:gemma-1b'
-scoring_models="gemma-1b"
-rewrite_model="gemma-1b"
+settings='gemma-9b:gemma-9b-instruct'
+scoring_models="gemma-9b-instruct"
+rewrite_model="gemma-9b-instruct"
+#settings='gemma-1b:gemma-1b'
+#scoring_models="gemma-1b"
+#rewrite_model="gemma-1b"
 gpu_device='cuda'
 # evaluate the rewrite-based method
 #for D in $datasets; do
