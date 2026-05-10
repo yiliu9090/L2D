@@ -155,6 +155,25 @@ class ComputeScore(nn.Module):
 
         self.load_state_dict(torch.load(os.path.join(load_directory, "model.bin"), map_location=self.device))
 
+    @torch.no_grad()
+    def score_text(self, text):
+        """Return the discrepancy score for a single text using the fine-tuned scoring model.
+
+        Used to compute the knockoff statistic W_i = score_text(T_i) - score_text(R_i),
+        where R_i is the LLM rewrite of T_i.  Under the null (AI text), T_i and R_i are
+        exchangeable so W_i is symmetric around 0.  For human text, T_i scores higher
+        than its rewrite, giving W_i > 0.
+        """
+        tokenized = self.scoring_tokenizer(
+            text, return_tensors="pt", padding=True, return_token_type_ids=False
+        ).to(self.device)
+        labels = tokenized.input_ids[:, 1:]
+        logits = self.scoring_model(
+            tokenized.input_ids, attention_mask=tokenized.attention_mask
+        ).logits[:, :-1, :]
+        crit, _ = self.criterion_fn(logits, logits, labels)
+        return crit.item()
+
     def get_SPO_input(self, tokenized=None ,text=[""], labels=[""], training_module=False):
         if training_module:
             logits_score = self.scoring_model(tokenized.input_ids, attention_mask=tokenized.attention_mask).logits[:,:-1,:]

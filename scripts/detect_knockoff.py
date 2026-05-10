@@ -51,8 +51,13 @@ def extract_scores(data, method):
     comparison and may weaken the symmetry guarantee.
     """
     if method in ("l2d", "imbd"):
-        real    = data["predictions"]["real"]
-        samples = data["predictions"]["samples"]
+        if "signed_predictions" in data:
+            # Prefer proper knockoff stats W_i = f(T_i) - f(R_i) if available
+            real    = data["signed_predictions"]["real"]
+            samples = data["signed_predictions"]["samples"]
+        else:
+            real    = data["predictions"]["real"]
+            samples = data["predictions"]["samples"]
 
     elif method == "likelihood":
         if "signed_predictions" in data:

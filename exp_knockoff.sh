@@ -53,19 +53,32 @@ for D in $datasets; do
   done
 done
 
-# ── ImBD knockoff ─────────────────────────────────────────────────────────────
-echo "$(date)  Applying knockoff filter to ImBD results ..."
+# ── ImBD knockoff (signed: W_i = f(T_i) - f(R_i)) ───────────────────────────
+echo "$(date)  Computing IMBD knockoff signed statistics ..."
+trained_imbd_path=scripts/ImBD/ckpt/ai_detection_500_spo_lr_0.0001_beta_0.05_a_1
 for D in $datasets; do
   for M in $source_models; do
     imbd_file="$res_path/${D}_${M}.imbd.json"
-    if [ -f "$imbd_file" ]; then
+    data_file="$data_path/${D}_${M}"
+    rewrite_file="$res_path/${D}_${M}.rewrite_4.json"
+    if [ -f "$imbd_file" ] && [ -f "${data_file}.raw_data.json" ] && [ -f "$rewrite_file" ]; then
+      # Step 1: compute signed stats f(T_i) - f(R_i)
+      python scripts/detect_ImBD.py \
+        --eval_only --knockoff \
+        --base_model    "$scoring_model" \
+        --eval_dataset  "$data_file" \
+        --output_file   "$res_path/${D}_${M}" \
+        --rewrite_file  "$rewrite_file" \
+        --from_pretrained "$trained_imbd_path" \
+        --device        "$gpu_device"
+      # Step 2: apply knockoff filter to signed stats
       python scripts/detect_knockoff.py \
-        --results_file  "$imbd_file" \
+        --results_file  "$res_path/${D}_${M}.imbd_knockoff.json" \
         --method        imbd \
         --output_file   "$res_path/${D}_${M}.knockoff_imbd.json" \
         --q_levels      $q_levels
     else
-      echo "  [skip] $imbd_file not found"
+      echo "  [skip] missing files for ${D}_${M}"
     fi
   done
 done
