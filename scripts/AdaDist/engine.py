@@ -14,20 +14,20 @@ try:
 except:
     from torch.optim import AdamW
 
-def evaluate_model(model, data, device):
+def evaluate_model(model, data, device, batch_size=1):
     model.to(device)
     model.eval()
     loss = 0
-    eval_loader = DataLoader(data, batch_size=1, shuffle=False)
+    eval_loader = DataLoader(data, batch_size=batch_size, shuffle=False)
     epoch_crit_train_original, epoch_crit_train_sampled = [],[]
     start_time = time.time()
     with torch.no_grad():
         for batch in tqdm.tqdm(eval_loader, desc="Evaluating"):
             text = batch
-            output = model(text)
+            output = model(text, training_module=False)
             loss += output['loss'].item()
-            epoch_crit_train_original.extend([output['crit'][1].item()])
-            epoch_crit_train_sampled.extend([output['crit'][3].item()])
+            epoch_crit_train_original.extend(output['crit'][1].tolist())
+            epoch_crit_train_sampled.extend(output['crit'][3].tolist())
             
         print(f"Total time: {time.time() - start_time:.4f}s")
         avg_loss = loss / len(eval_loader)

@@ -74,11 +74,14 @@ gpu_device='cuda'
 #  done
 #done
 data_split_2="AcademicResearch EducationMaterial FoodCusine MedicalText ProductReview TravelTourism ArtCulture Entertainment GovernmentPublic NewsArticle"
+#data_split_2="AcademicResearch"
+
 data_split_1="Religious Business Environmental LegalDocument OnlineContent Sports Code Finance LiteratureCreativeWriting PersonalCommunication TechnicalWriting"
 train_model_1="Llama-3-70B"
 eval_models_1="GPT-3-Turbo GPT-4o Gemini-1.5-Pro"
 train_model_2="GPT-3-Turbo"
 eval_models_2="Llama-3-70B"
+
 # evaluate RADIAR 
 #for model_setup in 1 2; do
 #  if [ "$model_setup" -eq 1 ]; then
@@ -114,7 +117,7 @@ eval_models_2="Llama-3-70B"
 #    done
 # done
 # evaluate the ada-rewrite-based method
-trained_model_path=scripts/AdaDist/ckpt
+#trained_model_path=scripts/AdaDist/ckpt
 for setting in 1 2; do
   if [ "$setting" -eq 1 ]; then
     train_dataset=$data_split_1
@@ -133,28 +136,47 @@ for setting in 1 2; do
       echo "Skipping dataset: $D1"
       continue
     fi
-  
-    # skip datasets whose rewrite file hasn't been generated yet
-    #rewrite_file="${res_path}/${D1}_${train_model}.rewrite_4.json"
-    #if [ ! -f "$rewrite_file" ]; then
-    #  echo "Skipping $D1 (no rewrite file: $rewrite_file)"
-    #  continue
-    #fi
-    if [ -z "$my_train_dataset_str" ]; then
-      my_train_dataset_str="${data_path}/${D1}_${train_model}"
-    else
-      my_train_dataset_str="${my_train_dataset_str}&${data_path}/${D1}_${train_model}"
-    fi
-  done
-  echo "Train data: $my_train_dataset_str"
-  python scripts/detect_l2d.py --datanum 500 --base_model "$scoring_models" --rewrite_model "$rewrite_model" --train_dataset "$my_train_dataset_str" --save_trained
-
-  for D in $eval_datasets; do
-    for M in $eval_models; do
-      python scripts/detect_l2d.py --eval_only --base_model "$scoring_models" --rewrite_model "$rewrite_model" --eval_dataset "$data_path/${D}_${M}" --output_file "$res_path/${D}_${M}" --from_pretrained "$trained_model_path"
-    done
   done
 done
+    # skip datasets whose rewrite file hasn't been generated yet
+#    rewrite_file="${res_path}/${D1}_${train_model}.rewrite_4.json"
+#    if [ ! -f "$rewrite_file" ]; then
+#      echo "Skipping $D1 (no rewrite file: $rewrite_file)"
+#      continue
+#    fi
+#    if [ -z "$my_train_dataset_str" ]; then
+#      my_train_dataset_str="${data_path}/${D1}_${train_model}"
+#    else
+#      my_train_dataset_str="${my_train_dataset_str}&${data_path}/${D1}_${train_model}"
+#    fi
+#  done
+#  echo "Train data: $my_train_dataset_str"
+#  python scripts/detect_l2d.py --datanum 500 --base_model "$scoring_models" --rewrite_model "$rewrite_model" --train_dataset "$my_train_dataset_str" --save_trained
+
+#  for D in $eval_datasets; do
+#    for M in $eval_models; do
+
+#        python scripts/detect_l2d.py --eval_only --base_model "$scoring_models" --rewrite_model "$rewrite_model" --eval_dataset "$data_path/${D}_${M}" --output_file "$res_path/${D}_${M}" --from_pretrained "$trained_model_path"
+      
+#    done
+#  done
+#done
+# evaluate L2D (using pretrained mamba413/L2D from HuggingFace)
+#l2d_model_path=mamba413/L2D
+#for D in $datasets; do
+#  for M in $source_models; do
+#    echo "$(date), Evaluating L2D on ${D}_${M} ..."
+#    python scripts/detect_l2d.py \
+#      --eval_only \
+#      --base_model    "$scoring_models" \
+#      --rewrite_model "$rewrite_model" \
+#      --eval_dataset  "$data_path/${D}_${M}" \
+#      --output_file   "$res_path/${D}_${M}" \
+#      --from_pretrained "$l2d_model_path" \
+#      --device        "$gpu_device"
+#  done
+#done
+
 # evaluate ImBD
 trained_model_path=scripts/ImBD/ckpt/ai_detection_500_spo_lr_0.0001_beta_0.05_a_1
 for setting in 1 2; do
@@ -176,21 +198,45 @@ for setting in 1 2; do
       echo "Skipping dataset: $D1"
       continue
     fi
-
+  
     if [ -z "$my_train_dataset_str" ]; then
       my_train_dataset_str="${data_path}/${D1}_${train_model}"
     else
       my_train_dataset_str="${my_train_dataset_str}&${data_path}/${D1}_${train_model}"
     fi
   done
-
-  echo "Train data: $my_train_dataset_str"
-  python scripts/detect_ImBD.py --datanum 500 --base_model "$scoring_models" --train_dataset "$my_train_dataset_str" --save_trained
-
+  echo "Train data: ---------------------------------- "
+  for D in $train_dataset; do
+    for M in $train_model; do
+      if [ ! -f "$res_path/${D}_${M}.imbd.json" ]; then
+        echo "${setting}Evaluating ImBD on ${D}_${M} ..."
+        python scripts/detect_ImBD.py --eval_only --base_model "$scoring_models" --eval_dataset "$data_path/${D}_${M}" --output_file "$res_path/${D}_${M}" --from_pretrained "$trained_model_path" --device $gpu_device
+      else
+        echo "${setting}:Skipping ${D}_${M} (imbd file already exists)"
+      fi
+    done
+  done
+  
+  echo "Eval datasets: ----------------------------------"
   for D in $eval_datasets; do
     for M in $eval_models; do
-      python scripts/detect_ImBD.py --eval_only --base_model "$scoring_models" --eval_dataset "$data_path/${D}_${M}" --output_file "$res_path/${D}_${M}" --from_pretrained "$trained_model_path"
+      if [ ! -f "$res_path/${D}_${M}.imbd.json" ]; then
+        echo "${setting}Evaluating ImBD on ${D}_${M} ..."
+        python scripts/detect_ImBD.py --eval_only --base_model "$scoring_models" --eval_dataset "$data_path/${D}_${M}" --output_file "$res_path/${D}_${M}" --from_pretrained "$trained_model_path" --device $gpu_device
+      else
+        echo "${setting}:Skipping ${D}_${M} (imbd file already exists)"
+      fi
     done
+  done
+done
+for D in $datasets; do
+  for M in $source_models; do
+    if [ ! -f "$res_path/${D}_${M}.imbd.json" ]; then
+      echo "${setting}Evaluating ImBD on ${D}_${M} ..."
+      python scripts/detect_ImBD.py --eval_only --base_model "$scoring_models" --eval_dataset "$data_path/${D}_${M}" --output_file "$res_path/${D}_${M}" --from_pretrained "$trained_model_path" --device $gpu_device
+    else
+      echo "${setting}:Skipping ${D}_${M} (imbd file already exists)"
+    fi
   done
 done
 

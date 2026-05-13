@@ -1,5 +1,4 @@
 from AdaDist.dataset import CustomDatasetRewrite
-from AdaDist.model import AdaDist
 from AdaDist.engine import evaluate_model, train_dist
 import torch
 from torch.utils.data import Subset
@@ -46,9 +45,16 @@ if __name__ == '__main__':
     parser.add_argument('--cache_dir', type=str, default="../cache")
     parser.add_argument('--train_dataset', type=str, default='./exp_prompt/data/squad_gpt-4o_polish&./exp_prompt/data/writing_gpt-4o_expand')
     parser.add_argument('--device', type=str, default="cuda")
+    parser.add_argument('--fast', action="store_true", help="Use batched eval (4x fewer forward passes)")
+    parser.add_argument('--eval_batch_size', type=int, default=1)
     args = parser.parse_args()
     print(f"Running with args: {args}")
     set_seed(args.seed)
+
+    if args.fast:
+        from AdaDist.model_fast import AdaDist
+    else:
+        from AdaDist.model import AdaDist
 
     ## load data and rewrite if necessary
     if "&" in args.train_dataset:
@@ -141,7 +147,7 @@ if __name__ == '__main__':
 
     if args.eval_only:
         print("Evaluating model before tuning...")
-        d = evaluate_model(model, val_data, args.device)
+        d = evaluate_model(model, val_data, args.device, batch_size=args.eval_batch_size)
         output_path = f"{args.output_file}.l2d.json"
         with open(output_path, "w") as j:
             json.dump(d, j, indent=2)
@@ -165,7 +171,7 @@ if __name__ == '__main__':
             print("Evaluating model after tuning...")
             start = time.perf_counter()
             with tracker:
-                d = evaluate_model(model, val_data, args.device)
+                d = evaluate_model(model, val_data, args.device, batch_size=args.eval_batch_size)
             eval_time = time.perf_counter() - start
             eval_time = eval_time / (len(val_data) << 1)
             eval_memory = tracker.memory_usage()

@@ -1,0 +1,110 @@
+{
+  "method": "l2d",
+  "n_human": 200,
+  "n_ai": 200,
+  "n_total": 400,
+  "positive": {
+    "symmetry": {
+      "ks_statistic": 0.735,
+      "ks_pvalue": 1.0008788520245535e-52,
+      "mean": 8.808205895423889,
+      "std": 14.179473714374655,
+      "median": 2.6229028701782227,
+      "fraction_positive": 0.86
+    },
+    "fdr_control": {
+      "0.05": {
+        "target_fdr": 0.05,
+        "actual_fdr": 0.44598337950138506,
+        "power": 1.0,
+        "n_selected": 361,
+        "n_false_discoveries": 161,
+        "threshold": 0.30608367919921875
+      },
+      "0.1": {
+        "target_fdr": 0.1,
+        "actual_fdr": 0.4609164420485175,
+        "power": 1.0,
+        "n_selected": 371,
+        "n_false_discoveries": 171,
+        "threshold": 7.62939453125e-05
+      },
+      "0.2": {
+        "target_fdr": 0.2,
+        "actual_fdr": 0.4609164420485175,
+        "power": 1.0,
+        "n_selected": 371,
+        "n_false_discoveries": 171,
+        "threshold": 7.62939453125e-05
+      },
+      "0.3": {
+        "target_fdr": 0.3,
+        "actual_fdr": 0.4609164420485175,
+        "power": 1.0,
+        "n_selected": 371,
+        "n_false_discoveries": 171,
+        "threshold": 7.62939453125e-05
+      },
+      "0.5": {
+        "target_fdr": 0.5,
+        "actual_fdr": 0.4609164420485175,
+        "power": 1.0,
+        "n_selected": 371,
+        "n_false_discoveries": 171,
+        "threshold": 7.62939453125e-05
+      }
+    }
+  },
+  "negative": {
+    "symmetry": {
+      "ks_statistic": 0.735,
+      "ks_pvalue": 1.0008788520245535e-52,
+      "mean": -8.808205895423889,
+      "std": 14.179473714374655,
+      "median": -2.6229028701782227,
+      "fraction_positive": 0.14
+    },
+    "fdr_control": {
+      "0.05": {
+        "target_fdr": 0.05,
+        "actual_fdr": 0.0,
+        "power": 0.0,
+        "n_selected": 0,
+        "n_false_discoveries": 0,
+        "threshold": Infinity
+      },
+      "0.1": {
+        "target_fdr": 0.1,
+        "actual_fdr": 0.0,
+        "power": 0.0,
+        "n_selected": 0,
+        "n_false_discoveries": 0,
+        "threshold": Infinity
+      },
+      "0.2": {
+        "target_fdr": 0.2,
+        "actual_fdr": 0.0,
+        "power": 0.0,
+        "n_selected": 0,
+        "n_false_discoveries": 0,
+        "threshold": Infinity
+      },
+      "0.3": {
+        "target_fdr": 0.3,
+        "actual_fdr": 0.0,
+        "power": 0.0,
+        "n_selected": 0,
+        "n_false_discoveries": 0,
+        "threshold": Infinity
+      },
+      "0.5": {
+        "target_fdr": 0.5,
+        "actual_fdr": 0.0,
+        "power": 0.0,
+        "n_selected": 0,
+        "n_false_discoveries": 0,
+        "threshold": Infinity
+      }
+    }
+  }
+}

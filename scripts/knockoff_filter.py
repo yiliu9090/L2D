@@ -13,6 +13,7 @@ def knockoff_threshold(scores, q):
     scores = np.asarray(scores, dtype=float)
     abs_scores = np.abs(scores)
     candidates = np.unique(abs_scores[abs_scores > 0])
+    candidates = np.sort(candidates)  # ascending order
 
     for c in candidates:
         n_neg = int(np.sum(scores <= -c))

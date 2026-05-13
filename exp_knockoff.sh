@@ -32,11 +32,28 @@ Business Environmental LegalDocument OnlineContent Sports Finance \
 PersonalCommunication TechnicalWriting"
 
 scoring_model="gemma-9b-instruct"
+rewrite_model="gemma-9b-instruct"
+likelihood_scoring_model="gemma-1b"
 q_levels="0.05 0.1 0.2 0.3 0.5"
 gpu_device="cuda"
 cache_dir=".cache/huggingface"
 
 # ── L2D knockoff ─────────────────────────────────────────────────────────────
+# evaluate L2D (using pretrained mamba413/L2D from HuggingFace)
+#l2d_model_path=mamba413/L2D
+#for D in $datasets; do
+#  for M in $source_models; do
+#    echo "$(date), Evaluating L2D on ${D}_${M} ..."
+#    python scripts/detect_l2d.py \
+#      --eval_only \
+#      --base_model    "$scoring_model" \
+#      --rewrite_model "$rewrite_model" \
+#      --eval_dataset  "$data_path/${D}_${M}" \
+#      --output_file   "$res_path/${D}_${M}" \
+#      --from_pretrained "$l2d_model_path" \
+#      --device        "$gpu_device"
+#  done
+#done
 echo "$(date)  Applying knockoff filter to L2D results ..."
 for D in $datasets; do
   for M in $source_models; do
@@ -52,7 +69,22 @@ for D in $datasets; do
     fi
   done
 done
-
+# ── ImBD knockoff (signed: W_i = f(T_i) - f(R_i)) ───────────────────────────
+echo "$(date)  Computing IMBD knockoff signed statistics ..."
+trained_imbd_path=scripts/ImBD/ckpt/ai_detection_500_spo_lr_0.0001_beta_0.05_a_1
+for D in $datasets; do
+  for M in $source_models; do
+    imbd_file="$res_path/${D}_${M}.imbd.json"
+    data_file="$data_path/${D}_${M}"
+    rewrite_file="$res_path/${D}_${M}.rewrite_4.json"
+    if [ -f "$imbd_file" ] && [ -f "${data_file}.raw_data.json" ] && [ -f "$rewrite_file" ]; then
+      # Step 1: compute signed stats f(T_i) - f(R_i)
+      echo ""
+    else
+      echo "  [skip] missing files for ${D}_${M}"
+    fi
+  done
+done
 # ── ImBD knockoff (signed: W_i = f(T_i) - f(R_i)) ───────────────────────────
 echo "$(date)  Computing IMBD knockoff signed statistics ..."
 trained_imbd_path=scripts/ImBD/ckpt/ai_detection_500_spo_lr_0.0001_beta_0.05_a_1
@@ -71,7 +103,7 @@ for D in $datasets; do
         --rewrite_file  "$rewrite_file" \
         --from_pretrained "$trained_imbd_path" \
         --device        "$gpu_device"
-      # Step 2: apply knockoff filter to signed stats
+      # Step 2: apply knockoff filter to signed stats (positive and negative)
       python scripts/detect_knockoff.py \
         --results_file  "$res_path/${D}_${M}.imbd_knockoff.json" \
         --method        imbd \
@@ -93,14 +125,14 @@ for D in $datasets; do
       # Step 1: compute signed stats g(R_i) - g(T_i)
       python scripts/detect_likelihood.py \
         --dataset_file        "$data_file" \
-        --scoring_model_name  "$scoring_model" \
+        --scoring_model_name  "$likelihood_scoring_model" \
         --output_file         "$res_path/${D}_${M}" \
         --rewrite_file        "$rewrite_file" \
         --device              "$gpu_device" \
         --cache_dir           "$cache_dir" \
         --knockoff
 
-      # Step 2: apply knockoff filter to the signed stats
+      # Step 2: apply knockoff filter to the signed stats (positive and negative)
       python scripts/detect_knockoff.py \
         --results_file  "$res_path/${D}_${M}.likelihood_knockoff.json" \
         --method        likelihood \

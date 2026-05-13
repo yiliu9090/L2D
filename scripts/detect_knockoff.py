@@ -12,6 +12,10 @@ Sections produced:
   4.1  Symmetry Condition  -- KS test on null (AI) score distribution
   4.2  Empirical FDR Control -- actual FDR and power at each target level q
 
+Use --negate to flip all statistics before applying the filter.  This changes
+the "positive" class from human to AI: selected texts are declared AI-written
+and FDR controls false AI discoveries instead of false human discoveries.
+
 Usage examples:
   # L2D (signed stats already in file):
   python scripts/detect_knockoff.py \\
@@ -24,12 +28,19 @@ Usage examples:
       --results_file exp_diverse/results/AcademicResearch_Llama-3-70B.likelihood_knockoff.json \\
       --method likelihood \\
       --output_file exp_diverse/results/AcademicResearch_Llama-3-70B.knockoff_likelihood.json
+
+  # Negate statistics (detect AI text, FDR on false AI discoveries):
+  python scripts/detect_knockoff.py \\
+      --results_file exp_diverse/results/AcademicResearch_Llama-3-70B.l2d.json \\
+      --method l2d --negate \\
+      --output_file exp_diverse/results/AcademicResearch_Llama-3-70B.knockoff_l2d_neg.json
 """
 
 import argparse
 import json
 import os
 import sys
+import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
 from knockoff_filter import symmetry_check, fdr_power
@@ -89,45 +100,71 @@ if __name__ == "__main__":
     parser.add_argument("--q_levels", nargs="+", type=float,
                         default=[0.05, 0.1, 0.2, 0.3, 0.5],
                         help="Target FDR levels q to evaluate")
+    parser.add_argument("--negate", action="store_true",
+                        help="Negate all statistics before filtering. Selected texts are "
+                             "declared AI-written; FDR controls false AI discoveries.")
     args = parser.parse_args()
 
     with open(args.results_file) as f:
         data = json.load(f)
 
     scores, labels = extract_scores(data, args.method)
-    null_scores = [s for s, l in zip(scores, labels) if l == 0]
 
-    sym = symmetry_check(null_scores)
     results = {
         "method":  args.method,
         "n_human": int(sum(labels)),
         "n_ai":    int(len(labels) - sum(labels)),
         "n_total": int(len(labels)),
-        # Section 4.1: Symmetry Condition
-        "symmetry": sym,
-        # Section 4.2: Empirical FDR Control
-        "fdr_control": {},
     }
 
-    print(f"\n=== {args.method.upper()} Knockoff Experiment ===")
-    print(f"Corpus: {results['n_human']} human + {results['n_ai']} AI = {results['n_total']} texts")
-    print(f"\n--- Section 4.1: Symmetry Condition (null / AI-text statistics) ---")
-    print(f"  mean={sym['mean']:.4f}  std={sym['std']:.4f}  "
-          f"frac_positive={sym['fraction_positive']:.3f}  "
-          f"KS p-value={sym['ks_pvalue']:.4f}")
+    for negate in (False, True):
+        key = "negative" if negate else "positive"
+        s = [-x for x in scores] if negate else scores
+        null_labels    = 0
+        eval_labels    = labels
+        positive_class = "human"
+        null_class     = "AI"
 
-    print(f"\n--- Section 4.2: Empirical FDR Control ---")
-    print(f"{'Target FDR':>12} {'Actual FDR':>12} {'Power':>8} {'Selected':>10} {'Threshold':>12}")
-    print("-" * 58)
+        null_scores = [x for x, l in zip(s, labels) if l == null_labels]
+        sym = symmetry_check(null_scores)
 
-    for q in sorted(args.q_levels):
-        r = fdr_power(scores, labels, q)
-        results["fdr_control"][str(q)] = r
-        fdr_flag = " *" if r["actual_fdr"] > q + 1e-9 else "  "
-        print(f"{q:>12.2f} {r['actual_fdr']:>12.3f}{fdr_flag} {r['power']:>8.3f} "
-              f"{r['n_selected']:>10} {r['threshold']:>12.4f}")
+        print(f"\n=== {args.method.upper()} Knockoff Experiment ({'negated' if negate else 'standard'}) ===")
+        print(f"Corpus: {results['n_human']} human + {results['n_ai']} AI = {results['n_total']} texts")
+        print(f"Positive class (selected => declared {positive_class})")
+        print(f"\n--- Section 4.1: Symmetry Condition (null / {null_class}-text statistics) ---")
+        print(f"  mean={sym['mean']:.4f}  std={sym['std']:.4f}  "
+              f"frac_positive={sym['fraction_positive']:.3f}  "
+              f"KS p-value={sym['ks_pvalue']:.4f}")
 
-    print("  (* marks violations of FDR guarantee -- should not appear)")
+        print(f"\n--- Section 4.2: Empirical FDR Control (false {positive_class} discoveries) ---")
+        print(f"{'Target FDR':>12} {'Actual FDR':>12} {'Power':>8} {'Selected':>10} {'Threshold':>12}")
+        print("-" * 58)
+
+        fdr_control = {}
+        for q in sorted(args.q_levels):
+            r = fdr_power(s, eval_labels, q)
+            fdr_control[str(q)] = r
+            fdr_flag = " *" if r["actual_fdr"] > q + 1e-9 else "  "
+            print(f"{q:>12.2f} {r['actual_fdr']:>12.3f}{fdr_flag} {r['power']:>8.3f} "
+                  f"{r['n_selected']:>10} {r['threshold']:>12.4f}")
+        print(f"\n--- Section 4.2: Empirical FDR Control (false {positive_class} discoveries) ---(demeaned)---")
+        print(f"{'Target FDR':>12} {'Actual FDR':>12} {'Power':>8} {'Selected':>10} {'Threshold':>12}")
+        print("-" * 58)
+        demean_fdr_control = {}
+        for q in sorted(args.q_levels):
+            r = fdr_power(s-np.mean(s), eval_labels, q)
+            demean_fdr_control[str(q)] = r
+            fdr_flag = " *" if r["actual_fdr"] > q + 1e-9 else "  "
+            print(f"{q:>12.2f} {r['actual_fdr']:>12.3f}{fdr_flag} {r['power']:>8.3f} "
+                f"{r['n_selected']:>10} {r['threshold']:>12.4f}")
+
+        results[key] = {
+            # Section 4.1: Symmetry Condition
+            "symmetry": sym,
+            # Section 4.2: Empirical FDR Control
+            "fdr_control": fdr_control,
+            "demean_fdr_control": demean_fdr_control,
+        }
 
     os.makedirs(os.path.dirname(os.path.abspath(args.output_file)), exist_ok=True)
     with open(args.output_file, "w") as f:
